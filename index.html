@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<!--[if IE 7]>    <html class="no-js lt-ie10 lt-ie9 lt-ie8 ie7" lang="en"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js lt-ie10 lt-ie9 ie8" lang="en"> <![endif]-->
+<!--[if IE 9]>    <html class="no-js lt-ie10 ie9" lang="en"> <![endif]-->
+<!--[if gt IE 9]><!--> <html class="no-js" lang="en"> <!--<![endif]-->
+<html>
+    <head>
+        <title>Estadisticas de Usuarios</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script> 
+        <!-- Compiled and minified CSS -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.96.1/css/materialize.min.css">
+        <!-- Compiled and minified JavaScript -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.96.1/js/materialize.min.js"></script>
+    </head>
+    <body>
+        
+    <div class="container">
+        <div class="row" style="margin-top: 20px;">
+            <img src="http://static.mlstatic.com/org-img/emails/logos/logo-mercadolibre-new.gif" />
+        </div>
+        <h2>Estadisticas de Usuarios - V.0.0.1</h2>
+          <div class="row">
+            <div class="switch">
+               <label>
+                 Usuarios
+                 <input type="checkbox" id="user_items" value="true">
+                 <span class="lever"></span>
+                 Items
+               </label>
+            </div>
+            <div class="input-field col s12">
+
+              <textarea id="ids" class="materialize-textarea"></textarea>
+              <label for="ids">IDs (pede ir uno o varios separados por comas) Ej: 84897460,133399121 o MLA561514073,MLA561244608,MLA561171890</label>
+            </div>
+          </div>
+           <div class="row">
+               <div class="col s6">
+                Fecha desde: <input type="date" id="date_from" class="datepicker"> 
+               </div>
+               <div class="col s6">
+               Fecha desde: <input type="date" id="date_to" class="datepicker"> 
+               </div>
+           </div>
+           <a class="waves-effect waves-light btn light-blue darken-3" onclick="Estadisticas.get();"><i class="mdi-action-description right"></i>Obtener</a>
+           <div class="progress light-blue darken-3">
+                <div class="determinate yellow darken-1" id="progress" style="width: 0%"></div>
+           </div>
+           <table id="results" class="hoverable" style="display:none;">
+                <thead>
+                  <tr>
+                      <th data-field="id">Id</th>
+                      <th data-field="seller">User / Item</th>
+                      <th data-field="visits">Visitas</th>
+                      <th data-field="contacts">Contactos</th>
+                      <th data-field="showphone">Ver Telefonos</th>
+                      <th data-field="conversion">Conversion</th>
+                  </tr>
+                </thead>
+
+                <tbody id="data">
+
+                </tbody>
+            </table>
+        </div>
+        <script type="text/javascript">
+                $('.datepicker').pickadate({
+                  selectMonths: true, // Creates a dropdown to control month
+                  selectYears: 15 // Creates a dropdown of 15 years to control year
+                });
+                
+                var Estadisticas = {
+                    get: function()
+                    {
+                        var arrayIds = $("#ids").val().split(",");
+                        var total = arrayIds.length;
+                        var progreso = 0;
+                        var isItem = $('#user_items:checked').length > 0 ? true : false ;
+                        $("#data").empty();
+                        
+                        $(arrayIds).each(function(i, item) {
+                            var id = $.trim(item);
+                            
+                            var resultItem = {
+                                user_item: item,
+                                contacts: 0,
+                                show_phone: 0,
+                                visits: 0
+                            };
+                            var permalink = "";
+                            var user_item_name = "";
+                            
+                            if (isItem) 
+                            {
+                                resultItem.user_item = Estadisticas.getItem(id);
+                                permalink = resultItem.user_item.permalink;
+                                user_item_name = resultItem.user_item.title;
+                            }
+                            else
+                            {
+                                resultItem.user_item = Estadisticas.getUser(id);
+                                permalink = resultItem.user_item.permalink;
+                                user_item_name = resultItem.user_item.nickname;
+                            }
+                            
+                            resultItem.contacts = Estadisticas.getContacts(id);
+                            resultItem.visits = Estadisticas.getVisits(id);
+                            resultItem.show_phone = Estadisticas.getViewPhones(id);
+                            
+                            var row =  " <tr> ";
+                               row += "    <td>"+ id +"</td>"; 
+                               
+                               row += "    <td><a href="+ permalink +" target='_new'>"+ user_item_name +"</a></td>";
+                               
+                               row += "    <td>"+ resultItem.visits +"</td>";
+                               row += "    <td>"+ resultItem.contacts +"</td>";
+                               row += "    <td>"+ resultItem.show_phone +"</td>";
+                               row += "    <td>" + ((resultItem.contacts + resultItem.show_phone) / resultItem.visits) + "</td>";
+                               row += " </tr> ";
+                                
+                            $("#data").append(row);
+                            
+                            progreso++;
+                            var totProgress = ((progreso/total) * 100);
+                            $("#progress").width(totProgress+ "%");
+                            $("#results").slideDown();
+                            
+                        });
+                        
+
+
+                        
+                    },
+                    
+                    getItem: function(item){
+                       
+                        var url = "https://api.mercadolibre.com/items/" + item;
+                        Util.callAjax(url, function(data){
+                            result = data;
+                        });
+                        
+                        return result;
+                    },
+                    
+                    getUser: function(user_id){
+                       
+                        var url = "https://api.mercadolibre.com/users/" + user_id;
+                        Util.callAjax(url, function(data){
+                            result = data;
+                        });
+                        
+                        return result;
+                    },
+                    getContacts: function(id){
+                        
+                        //2014-08-02T23:59:59.999
+                        var datefrom = new Date($("#date_from").val());
+                        var dateto = new Date($("#date_to").val());; 
+                        var result = 0;
+                        var resource = $('#user_items:checked').length > 0 ? "items" : "users" ;
+                        
+                        var url = "https://api.mercadolibre.com/" + resource + "/" + id + "/contacts/questions?date_from=" + datefrom.toISOString() + "&date_to=" + dateto.toISOString();
+                        Util.callAjax(url, function(data){
+                            result = data.total;
+                        });
+                        
+                        return result;
+                    },
+                    
+                    getVisits: function(id){
+                        
+                        //2014-08-02T23:59:59.999
+                        var datefrom = new Date($("#date_from").val());
+                        var dateto = new Date($("#date_to").val());; 
+                        var result = 0;
+                        var resource = $('#user_items:checked').length > 0 ? "items" : "users" ;
+                        var resourceVisits = $('#user_items:checked').length > 0 ? "visits" : "items_visits" ;
+                        
+                        var url = "https://api.mercadolibre.com/" + resource + "/" + id + "/" + resourceVisits +"?date_from=" + datefrom.toISOString() + "&date_to=" + dateto.toISOString();
+                        Util.callAjax(url, function(data){
+                            result = data.total_visits;
+                        });
+                        
+                        return result;
+                    },
+                    
+                    getViewPhones: function(id){
+                        
+                        //2014-08-02T23:59:59.999
+                        var datefrom = new Date($("#date_from").val());
+                        var dateto = new Date($("#date_to").val());; 
+                        var result = 0;
+                        var resource = $('#user_items:checked').length > 0 ? "items" : "users" ;
+                        var resourceVisits = $('#user_items:checked').length > 0 ? "visits" : "items_visits" ;
+
+                        var url = "https://api.mercadolibre.com/" + resource + "/" + id + "/contacts/phone_views?date_from=" + datefrom.toISOString() + "&date_to=" + dateto.toISOString();
+                        //console.log(url);
+                        Util.callAjax(url, function(data){
+                            result = data.total;
+                        });
+                        
+                        return result;
+                    }                   
+                    
+                };
+                
+               var Util = { 
+                    callAjax: function(resource, cback)
+                    { 
+                        $.ajax({
+                                url: resource,
+                                async: false,
+                                cache: false
+                            }).done(cback);
+                    }
+                };
+        </script>
+    </body>
+</html>
