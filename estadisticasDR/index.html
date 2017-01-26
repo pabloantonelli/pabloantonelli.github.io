@@ -95,6 +95,7 @@
                             };
                             var permalink = "";
                             var user_item_name = "";
+                            var category = "";
                             
                             if (isItem) 
                             {
@@ -106,8 +107,18 @@
                             {
                                 resultItem.user_item = Estadisticas.getUser(id);
                                 //console.log(resultItem.user_item);
+                                if (resultItem.user_item.user_type == 'car_dealer') {
+                                    category = resultItem.user_item.site_id + "1743";
+                                } 
+                                else {
+                                     if (resultItem.user_item.user_type == 'real_estate_agency') {
+                                        category = resultItem.user_item.site_id + "1459";
+                                    }        
+                                } 
 
-                                permalink = 'javascript:Estadisticas.setItemsBySellerId("' + resultItem.user_item.site_id+ '", ' + id + ');';
+                                
+
+                                permalink = 'javascript:Estadisticas.setItemsBySellerId("' + resultItem.user_item.site_id + '", ' + id + ', "' + category + '");';
                                 user_item_name = resultItem.user_item.nickname;
                             }
                             
@@ -115,6 +126,12 @@
                             resultItem.visits = Estadisticas.getVisits(id);
                             resultItem.show_phone = Estadisticas.getViewPhones(id);
                             resultItem.calls = Estadisticas.getCalls(id);
+                            var conversion = 0;
+
+                            try {
+                                conversion = (resultItem.contacts + resultItem.show_phone + resultItem.calls) / resultItem.visits
+                            }
+                            catch (e) {}
 
                             var row =  " <tr> ";
                                row += "    <td>"+ id +"</td>"; 
@@ -125,7 +142,7 @@
                                row += "    <td>"+ resultItem.contacts +"</td>";
                                row += "    <td>"+ resultItem.calls +"</td>";
                                row += "    <td>"+ resultItem.show_phone +"</td>";
-                               row += "    <td>" + ((resultItem.contacts + resultItem.show_phone + resultItem.calls) / resultItem.visits) + "</td>";
+                               row += "    <td>" + conversion + "</td>";
                                row += " </tr> ";
                                 
                             $("#data").append(row);
@@ -137,9 +154,16 @@
                         
                     },
 
-                    setItemsBySellerId: function(site,id) {
-                                        //https://api.mercadolibre.com/sites/MLA/search?seller_id=
-                        var url = "https://api.mercadolibre.com/sites/" + site + "/search?seller_id=" + id;
+                    setItemsBySellerId: function(site,id, cat) {
+                        
+                        var url;
+                        if (cat != "") {
+                            url = "https://api.mercadolibre.com/sites/" + site + "/search?category=" + cat + "&seller_id=" + id;
+                        }
+                        else {
+                            url = "https://api.mercadolibre.com/sites/" + site + "/search?seller_id=" + id;
+                        }
+
                         Util.callAjax(url, function(data){
                             result = "";
 
@@ -149,6 +173,7 @@
 
                         });
                         $("#user_items").attr("checked", "checked");
+                        result = result.substring(0, result.length - 1);
                         $("#ids").val(result);
                         //console.log(result);
                     },
