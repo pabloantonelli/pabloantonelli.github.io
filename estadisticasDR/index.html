@@ -10,9 +10,12 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script> 
         <!-- Compiled and minified CSS -->
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.96.1/css/materialize.min.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.98.0/css/materialize.min.css">
+
         <!-- Compiled and minified JavaScript -->
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.96.1/js/materialize.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.98.0/js/materialize.min.js"></script>
+       <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
     </head>
     <body>
         
@@ -20,7 +23,7 @@
         <div class="row" style="margin-top: 20px;">
             <img src="http://static.mlstatic.com/org-img/emails/logos/logo-mercadolibre-new.gif" />
         </div>
-        <h2>Estadisticas de Usuarios - V.0.0.1</h2>
+        <h2>Estadisticas de Usuarios - V.0.0.2</h2>
           <div class="row">
             <div class="switch">
                <label>
@@ -44,9 +47,9 @@
                Fecha hasta: <input type="date" id="date_to" class="datepicker"> 
                </div>
            </div>
-           <a class="waves-effect waves-light btn light-blue darken-3" onclick="Estadisticas.get();"><i class="mdi-action-description right"></i>Obtener</a>
-           <div class="progress light-blue darken-3">
-                <div class="determinate yellow darken-1" id="progress" style="width: 0%"></div>
+           <a class="waves-effect waves-light btn light-blue darken-3" onclick="Estadisticas.get();"><i class="material-icons left">description</i>Obtener</a>
+           <div class="progress light-blue darken-3" id="progress" style="display:none;">
+                <div class="indeterminate yellow darken-1"></div>
            </div>
            <table id="results" class="hoverable" style="display:none;">
                 <thead>
@@ -55,6 +58,7 @@
                       <th data-field="seller">User / Item</th>
                       <th data-field="visits">Visitas</th>
                       <th data-field="contacts">Contactos</th>
+                      <th data-field="calls">Llamadas</th>
                       <th data-field="showphone">Ver Telefonos</th>
                       <th data-field="conversion">Conversion</th>
                   </tr>
@@ -70,13 +74,13 @@
                   selectMonths: true, // Creates a dropdown to control month
                   selectYears: 15 // Creates a dropdown of 15 years to control year
                 });
-                
+
                 var Estadisticas = {
                     get: function()
                     {
+                        $("#progress").fadeIn();
+                        
                         var arrayIds = $("#ids").val().split(",");
-                        var total = arrayIds.length;
-                        var progreso = 0;
                         var isItem = $('#user_items:checked').length > 0 ? true : false ;
                         $("#data").empty();
                         
@@ -101,37 +105,52 @@
                             else
                             {
                                 resultItem.user_item = Estadisticas.getUser(id);
-                                permalink = resultItem.user_item.permalink;
+                                //console.log(resultItem.user_item);
+
+                                permalink = 'javascript:Estadisticas.setItemsBySellerId("' + resultItem.user_item.site_id+ '", ' + id + ');';
                                 user_item_name = resultItem.user_item.nickname;
                             }
                             
                             resultItem.contacts = Estadisticas.getContacts(id);
                             resultItem.visits = Estadisticas.getVisits(id);
                             resultItem.show_phone = Estadisticas.getViewPhones(id);
-                            
+                            resultItem.calls = Estadisticas.getCalls(id);
+
                             var row =  " <tr> ";
                                row += "    <td>"+ id +"</td>"; 
                                
-                               row += "    <td><a href="+ permalink +" target='_new'>"+ user_item_name +"</a></td>";
+                               row += "    <td><a href='"+ permalink +"' target='_new'>"+ user_item_name +"</a></td>";
                                
                                row += "    <td>"+ resultItem.visits +"</td>";
                                row += "    <td>"+ resultItem.contacts +"</td>";
+                               row += "    <td>"+ resultItem.calls +"</td>";
                                row += "    <td>"+ resultItem.show_phone +"</td>";
-                               row += "    <td>" + ((resultItem.contacts + resultItem.show_phone) / resultItem.visits) + "</td>";
+                               row += "    <td>" + ((resultItem.contacts + resultItem.show_phone + resultItem.calls) / resultItem.visits) + "</td>";
                                row += " </tr> ";
                                 
                             $("#data").append(row);
-                            
-                            progreso++;
-                            var totProgress = ((progreso/total) * 100);
-                            $("#progress").width(totProgress+ "%");
                             $("#results").slideDown();
                             
                         });
                         
-
-
+                        $("#progress").fadeOut();
                         
+                    },
+
+                    setItemsBySellerId: function(site,id) {
+                                        //https://api.mercadolibre.com/sites/MLA/search?seller_id=
+                        var url = "https://api.mercadolibre.com/sites/" + site + "/search?seller_id=" + id;
+                        Util.callAjax(url, function(data){
+                            result = "";
+
+                                $(data.results).each(function(i, item) {
+                                    result += item.id + ","
+                                })
+
+                        });
+                        $("#user_items").attr("checked", "checked");
+                        $("#ids").val(result);
+                        //console.log(result);
                     },
                     
                     getItem: function(item){
@@ -202,7 +221,25 @@
                         });
                         
                         return result;
-                    }                   
+                    },     
+
+                    getCalls: function(id){
+                        
+                        //2014-08-02T23:59:59.999
+                        var datefrom = new Date($("#date_from").val());
+                        var dateto = new Date($("#date_to").val());; 
+                        var result = 0;
+                        var resource = $('#user_items:checked').length > 0 ? "items" : "users" ;
+                        var days = DateDiff.inDays(datefrom, dateto);
+
+                        var url = "https://api.mercadolibre.com/" + resource + "/" + id + "/contacts/phone/call/time_window?last=" + days + "&unit=day&ending=" + dateto.toISOString();
+                        //https://api.mercadolibre.com/users/84897460/contacts/phone/call/time_window?last=20&unit=day&ending=2017-01-26T03:00:00.000Z&_=1485440642410
+                        Util.callAjax(url, function(data){
+                            result = data.total;
+                        });
+                        
+                        return result;
+                    },             
                     
                 };
                 
@@ -212,10 +249,40 @@
                         $.ajax({
                                 url: resource,
                                 async: false,
-                                cache: false
+                                cache: true
                             }).done(cback);
                     }
                 };
+
+                var DateDiff = {
+
+                    inDays: function(d1, d2) {
+                        var t2 = d2.getTime();
+                        var t1 = d1.getTime();
+
+                        return parseInt((t2-t1)/(24*3600*1000));
+                    },
+
+                    inWeeks: function(d1, d2) {
+                        var t2 = d2.getTime();
+                        var t1 = d1.getTime();
+
+                        return parseInt((t2-t1)/(24*3600*1000*7));
+                    },
+
+                    inMonths: function(d1, d2) {
+                        var d1Y = d1.getFullYear();
+                        var d2Y = d2.getFullYear();
+                        var d1M = d1.getMonth();
+                        var d2M = d2.getMonth();
+
+                        return (d2M+12*d2Y)-(d1M+12*d1Y);
+                    },
+
+                    inYears: function(d1, d2) {
+                        return d2.getFullYear()-d1.getFullYear();
+                    }
+                }
         </script>
     </body>
 </html>
