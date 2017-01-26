@@ -47,6 +47,11 @@
                Fecha hasta: <input type="date" id="date_to" class="datepicker"> 
                </div>
            </div>
+           <div class="row red-text" style="display:none;" id="validationDates">
+               <div class="col s12">
+                   Ambas fechas son requeridas
+               </div>
+           </div>
            <a class="waves-effect waves-light btn light-blue darken-3" onclick="Estadisticas.get();"><i class="material-icons left">description</i>Obtener</a>
            <div class="progress light-blue darken-3" id="progress" style="display:none;">
                 <div class="indeterminate yellow darken-1"></div>
@@ -78,6 +83,12 @@
                 var Estadisticas = {
                     get: function()
                     {
+
+                        if ($("#date_from").val() == "" || $("#date_to").val() == "") {
+                            $("#validationDates").fadeIn().delay("3000").fadeOut();
+                            return;
+                        }
+
                         $("#progress").fadeIn();
                         
                         var arrayIds = $("#ids").val().split(",");
@@ -175,6 +186,8 @@
                         $("#user_items").attr("checked", "checked");
                         result = result.substring(0, result.length - 1);
                         $("#ids").val(result);
+
+                        Estadisticas.get();
                         //console.log(result);
                     },
                     
