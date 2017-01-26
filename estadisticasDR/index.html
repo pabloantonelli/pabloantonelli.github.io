@@ -137,12 +137,10 @@
                             resultItem.visits = Estadisticas.getVisits(id);
                             resultItem.show_phone = Estadisticas.getViewPhones(id);
                             resultItem.calls = Estadisticas.getCalls(id);
-                            var conversion = 0;
 
-                            try {
-                                conversion = (resultItem.contacts + resultItem.show_phone + resultItem.calls) / resultItem.visits
-                            }
-                            catch (e) {}
+                            var conversion = (((resultItem.contacts + resultItem.show_phone + resultItem.calls) / resultItem.visits) * 100).toFixed(2);
+
+                            conversion =  isNaN(conversion) ? 0 : conversion;
 
                             var row =  " <tr> ";
                                row += "    <td>"+ id +"</td>"; 
@@ -153,7 +151,7 @@
                                row += "    <td>"+ resultItem.contacts +"</td>";
                                row += "    <td>"+ resultItem.calls +"</td>";
                                row += "    <td>"+ resultItem.show_phone +"</td>";
-                               row += "    <td>" + conversion + "</td>";
+                               row += "    <td>" + conversion + "%</td>";
                                row += " </tr> ";
                                 
                             $("#data").append(row);
